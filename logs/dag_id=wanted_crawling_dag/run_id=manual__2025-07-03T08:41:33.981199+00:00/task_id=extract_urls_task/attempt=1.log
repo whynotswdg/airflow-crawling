@@ -1,3 +1,0 @@
-{"timestamp":"2025-07-03T08:41:35.175065","level":"info","event":"DAG bundles loaded: dags-folder","logger":"airflow.dag_processing.bundles.manager.DagBundlesManager"}
-{"timestamp":"2025-07-03T08:41:35.176517","level":"info","event":"Filling up the DagBag from /opt/airflow/dags/wanted_crawling_dag.py","logger":"airflow.models.dagbag.DagBag"}
-{"timestamp":"2025-07-03T08:41:36.266836Z","level":"info","event":"원티드에서 채용 공고 크롤링을 시작합니다: https://www.wanted.co.kr/wdlist/518?country=kr&job_sort=job.latest_order&years=-1&locations=all","chan":"stdout","logger":"task"}
