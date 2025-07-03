@@ -1,0 +1,7 @@
+# 크롤링 스크립트 실행에 직접적으로 필요한 라이브러리
+crawl4ai
+beautifulsoup4
+tqdm
+
+# crawl4ai가 내부적으로 사용하며, 브라우저 설치에 필요한 라이브러리
+playwright
