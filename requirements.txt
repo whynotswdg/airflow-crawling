@@ -2,6 +2,10 @@
 crawl4ai
 beautifulsoup4
 tqdm
+pymongo
+
+# Airflow와 외부 서비스를 연결하는 Provider 패키지
+apache-airflow-providers-mongo # MongoDB 연결을 위해 추가
 
 # crawl4ai가 내부적으로 사용하며, 브라우저 설치에 필요한 라이브러리
 playwright

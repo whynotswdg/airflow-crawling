@@ -6,6 +6,7 @@ from airflow.operators.python import PythonOperator
 # dags 폴더에 함께 있는 task 파일들에서 함수를 가져옵니다.
 from task_extract_urls import extract_urls
 from task_crawl_content import crawl_content
+from task_save_to_db import save_data_to_mongodb
 
 with DAG(
     dag_id="wanted_crawling_dag",
@@ -17,7 +18,7 @@ with DAG(
     1. `extract_urls_task`: 원티드 채용공고 목록에서 상세 페이지 URL을 추출하여 JSON 파일로 저장합니다.
     2. `crawl_content_task`: 위에서 만든 JSON 파일을 읽어 각 URL을 방문하고, 상세 내용을 파싱하여 최종 JSON 파일로 저장합니다.
     """,
-    tags=["crawling", "wanted"],
+    tags=["crawling", "wanted", "mongodb"],
 ) as dag:
 
     # 첫 번째 Task: URL 추출
@@ -31,6 +32,11 @@ with DAG(
         task_id="crawl_content_task",
         python_callable=crawl_content,
     )
+    # 세 번째 Task: MongoDB에 저장 (새로 추가)
+    save_to_db_task = PythonOperator(
+        task_id="save_to_db_task",
+        python_callable=save_data_to_mongodb,
+    )
 
-    # Task 실행 순서 정의: URL 추출이 끝나면 상세 내용 크롤링을 시작
-    extract_urls_task >> crawl_content_task
+    # Task 실행 순서 정의: URL 추출 >> 상세 내용 크롤링 >> DB 저장
+    extract_urls_task >> crawl_content_task >> save_to_db_task
