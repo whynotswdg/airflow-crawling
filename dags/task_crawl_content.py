@@ -1,5 +1,6 @@
 import asyncio
 import json
+import pendulum
 from bs4 import BeautifulSoup
 from crawl4ai import AsyncWebCrawler
 from crawl4ai.async_configs import BrowserConfig, CrawlerRunConfig, CacheMode
@@ -27,6 +28,19 @@ def parse_job_details(html_content: str) -> dict | None:
         job_data = json_data['props']['pageProps']['initialData']
         company_data = job_data.get('company', {})
 
+        # 'job_category' 추출 로직 시작
+        category_tag = job_data.get('category_tag', {})
+        child_tags = category_tag.get('child_tags', [])
+        
+        job_category = None
+        if child_tags:
+            # child_tags 리스트에서 각 딕셔너리의 'text' 값만 추출하여 리스트로 만듭니다.
+            job_category_list = [tag.get('text') for tag in child_tags if tag.get('text')]
+            # 추출된 텍스트 리스트를 쉼표와 공백으로 구분된 하나의 문자열로 합칩니다.
+            if job_category_list:
+                job_category = ', '.join(job_category_list)
+        # 'job_category' 추출 로직 끝
+
         career = job_data.get('career', {})
         applicant_type = "무관"
         if career.get('is_newbie') and career.get('is_expert'): applicant_type = f"신입/경력({career.get('annual_from', '0')}~{career.get('annual_to','-')}년)"
@@ -36,13 +50,26 @@ def parse_job_details(html_content: str) -> dict | None:
         def clean_text(text):
             return ' '.join(text.splitlines()) if text else None
 
+        crawling_datetime_str = pendulum.now("Asia/Seoul").strftime('%Y-%m-%dT%H:%M:%S')
+        
         structured_data = {
-            'id': job_data.get('id'), 'company_id': company_data.get('company_id'), 'job_position': job_data.get('position'),
-            'employment_type': job_data.get('employment_type'), 'applicant_type': applicant_type, 'posting_date': job_data.get('confirm_time'),
-            'main_tasks': clean_text(job_data.get('main_tasks')), 'qualifications': clean_text(job_data.get('requirements')),
-            'preferences': clean_text(job_data.get('preferred_points')), 'tech_stack': None
+            'id': job_data.get('id'), # 공고 ID
+            'title': job_data.get('position'), # 공고 제목
+            'company_name': company_data.get('company_name'), # 회사명
+            'size': None, # 기업 규모
+            'address': job_data.get('address', {}).get('full_location'), # 주소
+            'job_category': job_category, # 직무명
+            'employment_type': job_data.get('employment_type'), # 고용 형태
+            'applicant_type': applicant_type, # 지원 자격 신입/경력
+            'posting_date': crawling_datetime_str, # 공고 게시일(크롤링 시점)
+            'deadline': job_data.get('due_time'), # 공고 마감일
+            'main_tasks': clean_text(job_data.get('main_tasks')), # 주요 업무
+            'qualifications': clean_text(job_data.get('requirements')), # 자격 요건
+            'preferences': clean_text(job_data.get('preferred_points')), # 우대 사항
+            'tech_stack': None # 기술 스택
         }
         
+        # 기술/스택 추출 from Tag
         tech_stack_section = soup.select_one("article.JobSkillTags_JobSkillTags__Oy6Uh")
         if tech_stack_section:
             tech_stack_list = [tag.get_text(strip=True) for tag in tech_stack_section.select("ul > li.SkillTagItem_SkillTagItem__MAo9X > span")]

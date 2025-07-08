@@ -1,13 +1,16 @@
+# airflow-crawling/dags/utils.py
 import json
 import os
-from datetime import datetime
+import pendulum # pendulum 임포트
 
 # Airflow와 연동된 data 폴더의 절대 경로
 AIRFLOW_DATA_DIR = "/opt/airflow/data"
 
 def generate_timestamped_filename(prefix: str, extension: str = "json") -> str:
-    """타임스탬프가 포함된 파일 이름을 생성합니다. (예: prefix_20250703_143000.json)"""
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    """타임스탬프가 포함된 파일 이름을 생성합니다. (예: prefix_20250708_011000.json)"""
+    # 현재 시간을 KST(Asia/Seoul) 기준으로 가져옵니다.
+    kst_time = pendulum.now("Asia/Seoul")
+    timestamp = kst_time.strftime("%Y%m%d_%H%M%S")
     return f"{prefix}_{timestamp}.{extension}"
 
 def save_json_data(data: list | dict, filename: str) -> str:
