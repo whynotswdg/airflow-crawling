@@ -34,7 +34,7 @@ def save_data_to_mongodb(ti):
     client = hook.get_conn()
     
     # Connection 정보에 지정한 DB 이름(Schema)과 사용할 Collection 이름을 설정합니다.
-    db = client[hook.schema] 
+    db = client.get_default_database() 
     collection = db.wanted_jobs # "wanted_jobs" 라는 이름의 테이블(Collection)에 저장
 
     try:
