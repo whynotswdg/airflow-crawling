@@ -110,13 +110,17 @@ async def crawl_content_main(input_json_path: str):
         filename = generate_timestamped_filename("wanted_structured_jobs")
         file_path = save_json_data(all_structured_data, filename)
         print(f"\n총 {len(all_structured_data)}개의 구조화된 채용 공고 저장 완료: {file_path}")
+        return file_path # Dag의 다음 task를 위해 파일 경로 반환
     else:
         print("\n추출된 채용 공고 정보가 없습니다.")
+        return None
 
 def crawl_content(ti):
     """Airflow Task Instance(ti)에서 XCom을 통해 파일 경로를 받아 비동기 함수를 실행하는 래퍼 함수"""
     input_path = ti.xcom_pull(task_ids='extract_urls_task', key='return_value')
     if input_path:
-        asyncio.run(crawl_content_main(input_path))
+        # crawl_content_main 함수의 반환 값을 받아 다시 반환합니다.
+        return asyncio.run(crawl_content_main(input_path)) # <<< [수정] return 추가
     else:
         print("XCom으로부터 파일 경로를 가져오지 못했습니다.")
+        return None # <<< [수정] 경로가 없을 경우 None을 반환합니다.
