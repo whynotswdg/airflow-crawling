@@ -50,3 +50,5 @@ def save_data_to_mongodb(ti):
     finally:
         # 5. 작업 완료 후에는 항상 접속을 종료합니다.
         client.close()
+    
+    return json_file_path
