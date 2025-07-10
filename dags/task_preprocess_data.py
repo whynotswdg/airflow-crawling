@@ -31,14 +31,16 @@ def extract_tech_stack_with_llm(client, job_post_text: str) -> str | None:
         
     # LLM에게 보낼 프롬프트(명령어)
     prompt = f"""
-    당신은 채용 공고를 분석하여 기술 스택을 정확하게 추출하고 표준화하는 전문가입니다.
-    아래 "---"로 구분된 채용 공고 본문 내용에서 언급된 모든 프로그래밍 언어, 프레임워크, 라이브러리, 데이터베이스, 클라우드 서비스, 개발 도구 등의 기술 스택을 찾아주세요.
+    You are an expert in analyzing job descriptions to accurately extract and standardize technology stacks.
+    From the provided text of a job description, please find all mentioned technology stacks, such as programming languages, frameworks, libraries, databases, cloud services, and development tools.
 
-    # 지침:
-    - 각 기술 스택은 가장 널리 알려진 영문 표준 이름으로 변환해주세요. (예: '파이썬' -> 'Python', '리액트' -> 'React')
-    - 결과는 반드시 쉼표(,)로 구분된 문자열 형태로만 반환해주세요. (예: "Python, React, AWS, Docker, MySQL")
-    - 본문에 언급되지 않은 기술은 절대 추측해서 추가하지 마세요.
-    - 기술 스택 외에 다른 설명이나 문장은 절대 포함하지 마세요.
+    Instructions:
+    Convert each technology stack to its most widely recognized standard English name (e.g., '파이썬' -> 'Python', '리액트' -> 'React').
+    Sort the extracted technology stacks in alphabetical order.
+    The result must be returned only as a comma-separated string (e.g., "AWS, Docker, MySQL, Python, React").
+    Never guess or add any technologies that are not mentioned in the text.
+    Do not include any descriptions or sentences other than the technology stacks.
+    If no technology stacks are mentioned in the text, return null.
 
     ---
     {job_post_text}
@@ -46,10 +48,16 @@ def extract_tech_stack_with_llm(client, job_post_text: str) -> str | None:
 
     try:
         chat_completion = client.chat.completions.create(
-            model="meta-llama/llama-4-maverick", # LLM 
+            model="mistralai/mistral-nemo", 
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.0, # 일관된 결과를 위해 0으로 설정
+            temperature=0.0,
             max_tokens=256,
+            extra_body={
+                "provider": {
+                    "order": ["klusterai"],      # KlusterAI를 최우선으로 시도
+                    "allow_fallbacks": True    # KlusterAI가 실패하면 다른 제공업체로 자동 전환
+                }
+            }
         )
         tech_stack_str = chat_completion.choices[0].message.content.strip()
         # LLM이 간혹 따옴표를 붙여서 반환하는 경우가 있어 제거
