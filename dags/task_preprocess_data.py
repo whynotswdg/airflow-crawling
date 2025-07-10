@@ -14,7 +14,7 @@ def load_json_from_path(file_path: str) -> list | None:
 def get_llm_client():
     """LM Studio 로컬 서버에 연결하는 LLM 클라이언트를 생성합니다."""
     client = OpenAI(
-        base_url="http://localhost:1234/v1",
+        base_url="http://host.docker.internal:1234/v1",
         api_key="lm-studio", # 실제 키는 필요 없으나, 형식상 아무 문자열이나 입력
     )
     return client
