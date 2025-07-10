@@ -12,17 +12,13 @@ def load_json_from_path(file_path: str) -> list | None:
         return None
 
 def get_llm_client():
-    """Airflow Connection에서 OpenRouter API 키를 가져와 LLM 클라이언트를 생성합니다."""
-    # 1. 'openrouter_default' Connection 정보를 가져옵니다.
-    connection = BaseHook.get_connection('openrouter_default')
-    
-    # 2. 클라이언트를 초기화합니다.
-    # base_url은 Connection의 Host 필드를, api_key는 Password 필드를 사용합니다.
+    """LM Studio 로컬 서버에 연결하는 LLM 클라이언트를 생성합니다."""
     client = OpenAI(
-        base_url=connection.host,
-        api_key=connection.password,
+        base_url="http://localhost:1234/v1",
+        api_key="lm-studio", # 실제 키는 필요 없으나, 형식상 아무 문자열이나 입력
     )
     return client
+
 
 def extract_tech_stack_with_llm(client, job_post_text: str) -> str | None:
     """LLM을 사용하여 주어진 텍스트에서 기술 스택을 추출하고 표준화합니다."""
@@ -48,16 +44,10 @@ def extract_tech_stack_with_llm(client, job_post_text: str) -> str | None:
 
     try:
         chat_completion = client.chat.completions.create(
-            model="mistralai/mistral-nemo", 
+            model="local-model",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.0,
             max_tokens=256,
-            extra_body={
-                "provider": {
-                    "order": ["klusterai"],      # KlusterAI를 최우선으로 시도
-                    "allow_fallbacks": True    # KlusterAI가 실패하면 다른 제공업체로 자동 전환
-                }
-            }
         )
         tech_stack_str = chat_completion.choices[0].message.content.strip()
         # LLM이 간혹 따옴표를 붙여서 반환하는 경우가 있어 제거
