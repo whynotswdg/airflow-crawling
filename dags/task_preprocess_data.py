@@ -44,7 +44,7 @@ def extract_tech_stack_with_llm(client, job_post_text: str) -> str | None:
 
     try:
         chat_completion = client.chat.completions.create(
-            model="local-model",
+            model="mistralai/mistral-nemo-instruct-2407",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.0,
             max_tokens=256,
