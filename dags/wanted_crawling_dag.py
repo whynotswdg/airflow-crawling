@@ -46,6 +46,7 @@ with DAG(
     preprocess_data_task = PythonOperator(
         task_id="preprocess_data_task",
         python_callable=preprocess_data,
+        trigger_rule=TriggerRule.ALL_DONE,
     )
 
     # 최종 Task 실행 순서 정의
