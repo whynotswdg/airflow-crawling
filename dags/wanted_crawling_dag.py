@@ -2,6 +2,7 @@ from __future__ import annotations
 import pendulum
 from airflow.models.dag import DAG
 from airflow.operators.python import PythonOperator
+from airflow.utils.trigger_rule import TriggerRule
 
 # dags 폴더에 함께 있는 task 파일들에서 함수를 가져옵니다.
 from task_extract_urls import extract_urls
