@@ -47,8 +47,7 @@ with DAG(
     preprocess_data_task = PythonOperator(
         task_id="preprocess_data_task",
         python_callable=preprocess_data,
-        trigger_rule=TriggerRule.ALL_DONE,
     )
 
     # 최종 Task 실행 순서 정의
-    extract_urls_task >> crawl_content_task >> save_to_db_task >> preprocess_data_task
+    extract_urls_task >> crawl_content_task >> [save_to_db_task, preprocess_data_task]

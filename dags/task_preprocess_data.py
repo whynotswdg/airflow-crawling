@@ -65,10 +65,7 @@ def preprocess_data(ti):
     from utils import save_json_data, generate_timestamped_filename
 
     # 이전 Task에서 전달받은 파일 경로를 가져옵니다.
-    json_file_path = ti.xcom_pull(task_ids='save_to_db_task', key='return_value')
-    if not json_file_path:
-        # save_to_db_task가 return값이 없으므로 crawl_content_task에서 가져옵니다.
-        json_file_path = ti.xcom_pull(task_ids='crawl_content_task', key='return_value')
+    json_file_path = ti.xcom_pull(task_ids='crawl_content_task', key='return_value')    
 
     if not json_file_path:
         raise ValueError("XCom으로부터 원본 데이터 파일 경로를 가져오지 못했습니다.")

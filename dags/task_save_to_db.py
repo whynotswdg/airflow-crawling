@@ -65,5 +65,3 @@ def save_data_to_mongodb(ti):
         if client:
             client.close()
             print("MongoDB 연결을 종료했습니다.")
-            
-    return json_file_path
