@@ -22,7 +22,7 @@ with DAG(
     3. `save_to_db_task`: 원본 데이터를 MongoDB에 저장
     4. `preprocess_data_task`: LLM으로 기술 스택 추출 및 전처리 후 JSON 파일로 저장
     """,
-    tags=["crawling", "wanted", "mongodb", "preprocessing"],
+    tags=["crawling", "wanted", "mongodb", "preprocessing_local_LLM"],
 ) as dag:
 
     # Task 1: URL 추출
