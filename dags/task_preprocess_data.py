@@ -36,7 +36,7 @@ def extract_tech_stack_with_llm(client, job_post_text: str) -> str | None:
     The result must be returned only as a comma-separated string (e.g., "AWS, Docker, MySQL, Python, React").
     Never guess or add any technologies that are not mentioned in the text.
     Do not include any descriptions or sentences other than the technology stacks.
-    If no technology stacks are mentioned in the text, return null.
+    If no technology stacks are mentioned in the text, **return an empty string.**
 
     ---
     {job_post_text}
