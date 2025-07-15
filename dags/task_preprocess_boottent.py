@@ -4,7 +4,8 @@ import pandas as pd
 # Airflow 환경에 맞게 utils 함수를 임포트합니다.
 from utils import save_json_data, generate_timestamped_filename, load_json_data
 
-def run_preprocess_task(ti):
+# ✅ DAG 파일이 찾는 이름인 'preprocess_and_save_data'로 함수 이름을 변경했습니다.
+def preprocess_and_save_data(ti):
     """
     Airflow Task: 이전 Task의 결과(JSON 파일)를 XCom으로 받아 전처리하고,
     그 결과를 DB에 맞는 최종 JSON 파일로 저장합니다.
@@ -44,18 +45,13 @@ def run_preprocess_task(ti):
     df_processed.rename(columns=column_mapping, inplace=True)
 
     # 4. 데이터를 변환하고 새로운 컬럼을 추가합니다.
-    # 'id' 컬럼 생성 (1부터 시작)
     df_processed.insert(0, 'id', range(1, len(df_processed) + 1))
-
-    # 'type' 컬럼 추가
     df_processed['type'] = '부트캠프'
-    
-    # 'skill_description'을 JSON 형식의 문자열로 변환
     df_processed['skill_description'] = df_processed['skill_description'].apply(
         lambda x: json.dumps(x, ensure_ascii=False) if isinstance(x, list) and x else '[]'
     )
 
-    # 5. 데이터를 정제합니다 (필수 값이 없는 데이터 제거).
+    # 5. 데이터를 정제합니다.
     required_columns = ['name', 'start_date']
     original_count = len(df_processed)
     df_processed.dropna(subset=required_columns, inplace=True)
@@ -74,16 +70,12 @@ def run_preprocess_task(ti):
 
     # 7. 전처리된 최종 데이터를 새로운 JSON 파일로 저장합니다.
     if not df_final.empty:
-        # DataFrame을 dictionary 리스트로 변환
         preprocessed_data = df_final.to_dict(orient='records')
-        
-        # utils 함수를 사용하여 파일 이름 생성 및 저장
         filename = generate_timestamped_filename("preprocessed_bootcamps_final")
         file_path = save_json_data(preprocessed_data, filename)
         
         print(f"✅ 전처리 완료! 총 {len(preprocessed_data)}개의 데이터를 다음 경로에 저장했습니다: {file_path}")
         
-        # 다음 Task를 위해 결과 파일 경로를 XCom으로 반환
         return file_path
     else:
         print("전처리 후 데이터가 없습니다.")
