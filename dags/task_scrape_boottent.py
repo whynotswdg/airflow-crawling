@@ -22,10 +22,7 @@ def format_date(date_str: str) -> str | None:
         return None
 
 def parse_period_data(period_cell):
-    """
-    기간(period) 정보를 담고 있는 table cell(<td>)에서
-    시작일, 종료일, 기간(개월)을 추출합니다.
-    """
+    """ 기간(period) 정보를 담고 있는 table cell(<td>)에서 시작일, 종료일, 기간(개월)을 추출합니다. """
     if not period_cell:
         return None, None, None, None
     container = period_cell.find('div')
@@ -51,6 +48,45 @@ def parse_period_data(period_cell):
             end_date_text = end_date_str
     return start_date, end_date, end_date_text, duration_months
 
+# ✨✨✨--- 새로 추가된 location 파싱 함수 ---✨✨✨
+def parse_location_data(location_raw_str: str) -> tuple[str | None, str | None]:
+    """ location 문자열에서 'onoff'와 'location'을 분리하고 표준화합니다. """
+    if not location_raw_str:
+        return None, None
+
+    onoff = None
+    location = None
+    
+    # 1. onoff 상태 결정
+    if "온·오프라인" in location_raw_str or "혼합" in location_raw_str or "온라인 가능" in location_raw_str:
+        onoff = "온·오프라인"
+    elif "온라인" in location_raw_str:
+        onoff = "온라인"
+    elif "오프라인" in location_raw_str:
+        onoff = "오프라인"
+
+    # 2. location(지역) 문자열 추출
+    keywords_to_remove = ["온·오프라인", "오프라인", "온라인", "혼합", "대면 있음", "가능"]
+    temp_location = location_raw_str
+    for keyword in keywords_to_remove:
+        temp_location = temp_location.replace(keyword, "")
+    
+    location = temp_location.strip()
+    
+    # 3. location이 비어있을 경우 후처리
+    if not location:
+        if onoff == "온라인":
+            location = "온라인"
+        # 오프라인인데 지역 정보가 없으면 None 유지
+        elif onoff == "오프라인":
+            location = None
+        # 온·오프라인인데 지역 정보가 없으면 '온·오프라인'으로 설정
+        elif onoff == "온·오프라인":
+             location = '온·오프라인'
+
+    return onoff, location
+# ✨✨✨------------------------------------✨✨✨
+
 # -----------------------------------------------------------------------------
 # 메인 스크래핑 로직
 # -----------------------------------------------------------------------------
@@ -67,6 +103,12 @@ def extract_bootcamp_data(html_content):
         if not th_element or len(td_elements) < 8:
             continue
         
+        # ✨✨✨--- location 처리 로직 수정 ---✨✨✨
+        location_cell = td_elements[3] if len(td_elements) > 3 else None
+        location_raw = location_cell.text.strip() if location_cell else None
+        onoff, location = parse_location_data(location_raw)
+        # ✨✨✨------------------------------------✨✨✨
+        
         deadline_el = td_elements[1].select_one("div.whitespace-pre-wrap") if len(td_elements) > 1 else None
         deadline_str = deadline_el.text.strip() if deadline_el else None
         deadline = format_date(deadline_str)
@@ -74,25 +116,16 @@ def extract_bootcamp_data(html_content):
         period_cell = td_elements[4] if len(td_elements) > 4 else None
         start_date, end_date, end_date_text, duration_months = parse_period_data(period_cell)
 
-        # ✨✨✨--- 예상 종료일 계산 로직 추가 ---✨✨✨
         if not end_date and start_date and duration_months:
             try:
                 start_dt = pendulum.parse(start_date)
-                
-                # 기간의 정수부(개월)와 소수부(일) 분리
                 integer_months = int(duration_months)
                 fractional_month = duration_months - integer_months
-                
-                # 1개월을 평균 30.44일로 계산하여 소수부를 일로 변환
                 days_to_add = int(fractional_month * 30.44)
-                
-                # 시작일에 기간을 더해 예상 종료일 계산
                 estimated_end_date = start_dt.add(months=integer_months, days=days_to_add)
                 end_date = estimated_end_date.to_date_string()
             except Exception:
-                # 날짜 파싱 또는 계산 중 오류 발생 시에도 코드가 중단되지 않도록 함
                 pass
-        # ✨✨✨------------------------------------✨✨✨
 
         tech_stack_items = td_elements[6].select("div > ul > li > div") if len(td_elements) > 6 else []
         tech_stacks = [item.text.strip() for item in tech_stack_items]
@@ -107,21 +140,22 @@ def extract_bootcamp_data(html_content):
         status = status_el.text.strip() if status_el else None
         cost_text_node = td_elements[2].find('div').find(string=True, recursive=False) if len(td_elements) > 2 and td_elements[2].find('div') else None
         cost = cost_text_node.strip() if cost_text_node and cost_text_node.strip() else None
-        location_parts = [part.text.strip() for part in td_elements[3].find_all(['div', 'p'], recursive=False) if part.text.strip()] if len(td_elements) > 3 and td_elements[3].find('div') else []
-        location = f"{location_parts[0]} ({location_parts[1]})" if len(location_parts) > 1 else (location_parts[0] if location_parts else None)
         time_type_el = td_elements[5].select_one("div > div") if len(td_elements) > 5 else None
         time_details_el = td_elements[5].select_one("div > ul") if len(td_elements) > 5 else None
         participation_time = f"{time_type_el.text.strip()} ({' '.join(time_details_el.text.split())})" if time_type_el and time_details_el else None
         selection_el = td_elements[6].select_one("div > div") if len(td_elements) > 6 else None
         selection_keywords = selection_el.text.strip() if selection_el else None
         
+        # ✨✨✨--- 최종 결과에 onoff, location 추가 ---✨✨✨
         bootcamp_info = {
             "company": company, "course_name": course_name, "program_course": program_course,
-            "status": status, "deadline": deadline, "cost": cost, "location": location,
+            "status": status, "deadline": deadline, "cost": cost,
+            "onoff": onoff, "location": location,
             "start_date": start_date, "end_date": end_date, "end_date_text": end_date_text,
             "duration_months": duration_months, "participation_time": participation_time, 
             "selection_keywords": selection_keywords, "tech_stack": tech_stacks, "hiring_info": hiring_info,
         }
+        # ✨✨✨------------------------------------✨✨✨
         
         if not bootcamp_info.get("end_date_text"):
             bootcamp_info.pop("end_date_text", None)
