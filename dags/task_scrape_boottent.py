@@ -1,8 +1,11 @@
 import json
 import re
 from datetime import datetime
+import pendulum # 날짜 계산을 위해 임포트
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 from bs4 import BeautifulSoup
+
+# utils.py의 함수들을 임포트합니다.
 from utils import generate_timestamped_filename, save_json_data
 
 # -----------------------------------------------------------------------------
@@ -25,24 +28,19 @@ def parse_period_data(period_cell):
     """
     if not period_cell:
         return None, None, None, None
-
     container = period_cell.find('div')
     if not container:
         return None, None, None, None
-
     spans = container.find_all('span', recursive=False)
     div_duration = container.find('div', recursive=False)
-
     start_date_str = spans[0].text.strip() if len(spans) > 0 else None
     end_date_str = spans[1].text.strip() if len(spans) > 1 else None
     duration_str = div_duration.text.strip() if div_duration else None
-
     duration_months = None
     if duration_str:
         match = re.search(r'[\d.]+', duration_str)
         if match:
             duration_months = float(match.group())
-
     start_date = format_date(start_date_str)
     end_date, end_date_text = None, None
     if end_date_str:
@@ -51,7 +49,6 @@ def parse_period_data(period_cell):
             end_date = formatted_end_date
         else:
             end_date_text = end_date_str
-
     return start_date, end_date, end_date_text, duration_months
 
 # -----------------------------------------------------------------------------
@@ -76,6 +73,26 @@ def extract_bootcamp_data(html_content):
 
         period_cell = td_elements[4] if len(td_elements) > 4 else None
         start_date, end_date, end_date_text, duration_months = parse_period_data(period_cell)
+
+        # ✨✨✨--- 예상 종료일 계산 로직 추가 ---✨✨✨
+        if not end_date and start_date and duration_months:
+            try:
+                start_dt = pendulum.parse(start_date)
+                
+                # 기간의 정수부(개월)와 소수부(일) 분리
+                integer_months = int(duration_months)
+                fractional_month = duration_months - integer_months
+                
+                # 1개월을 평균 30.44일로 계산하여 소수부를 일로 변환
+                days_to_add = int(fractional_month * 30.44)
+                
+                # 시작일에 기간을 더해 예상 종료일 계산
+                estimated_end_date = start_dt.add(months=integer_months, days=days_to_add)
+                end_date = estimated_end_date.to_date_string()
+            except Exception:
+                # 날짜 파싱 또는 계산 중 오류 발생 시에도 코드가 중단되지 않도록 함
+                pass
+        # ✨✨✨------------------------------------✨✨✨
 
         tech_stack_items = td_elements[6].select("div > ul > li > div") if len(td_elements) > 6 else []
         tech_stacks = [item.text.strip() for item in tech_stack_items]
@@ -139,7 +156,6 @@ def scrape_boottent_data():
                 print("추출된 부트캠프 데이터가 없습니다.")
                 return None
 
-            # utils.py의 함수들을 사용하여 파일 이름 생성 및 저장
             filename = generate_timestamped_filename("boottent_bootcamps")
             file_path = save_json_data(bootcamp_data, filename)
 
