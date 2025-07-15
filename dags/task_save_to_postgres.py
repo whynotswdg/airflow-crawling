@@ -28,7 +28,6 @@ def save_data_to_db(ti):
     cur = conn.cursor()
     
     # 3. 데이터를 DB에 삽입(INSERT)합니다.
-    #    - 테이블 이름은 'bootcamps'로 가정합니다.
     #    - ON CONFLICT 구문을 사용하여 id가 중복될 경우 UPDATE를 수행합니다 (Upsert).
     #      이렇게 하면 DAG을 여러 번 실행해도 데이터가 중복되지 않습니다.
     
@@ -41,7 +40,7 @@ def save_data_to_db(ti):
     
     # SQL 쿼리 생성
     insert_sql = f"""
-        INSERT INTO bootcamps ({', '.join(columns)})
+        INSERT INTO roadmaps ({', '.join(columns)})
         VALUES %s
         ON CONFLICT (id) DO UPDATE SET
             {', '.join([f"{col} = EXCLUDED.{col}" for col in update_columns])}
