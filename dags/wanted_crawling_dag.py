@@ -9,7 +9,7 @@ from task_extract_urls import extract_urls
 from task_crawl_content import crawl_content
 from task_save_to_db import save_data_to_mongodb
 from task_preprocess_data import preprocess_data # 전처리 함수 임포트
-from task_standardize_tech import standardize_and_save_data # 표준화 함수 임포트
+from task_standardize_tech import standardize_tech_stacks # 표준화 함수 임포트
 
 with DAG(
     dag_id="wanted_crawling_dag",
