@@ -98,7 +98,7 @@ def preprocess_data(ti):
         preprocessed_data.append(job)
         
         # 50개마다 진행 상황 출력
-        if (i + 1) % 50 == 0:
+        if (i + 1) % 10 == 0:
             print(f"  ... {i + 1}/{len(raw_data)}개 처리 완료")
 
     print("데이터 전처리 완료.")
