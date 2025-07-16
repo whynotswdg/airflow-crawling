@@ -2,14 +2,13 @@ from __future__ import annotations
 import pendulum
 from airflow.models.dag import DAG
 from airflow.operators.python import PythonOperator
-from airflow.utils.trigger_rule import TriggerRule
 
 # dags 폴더에 함께 있는 task 파일들에서 함수를 가져옵니다.
 from task_extract_urls import extract_urls
 from task_crawl_content import crawl_content
 from task_save_to_db import save_data_to_mongodb
 from task_preprocess_data import preprocess_data # 전처리 함수 임포트
-from task_standardize_tech import standardize_tech_stacks # 표준화 함수 임포트
+from task_standardize_tech import standardize_and_save_data 
 
 with DAG(
     dag_id="wanted_crawling_dag",
@@ -54,7 +53,7 @@ with DAG(
     # Task 5: 최종 표준화 작업
     standardize_data_task = PythonOperator(
         task_id="standardize_data_task",
-        python_callable=standardize_tech_stacks,
+        python_callable=standardize_and_save_data,
     )
 
     # Task 실행 순서 정의
