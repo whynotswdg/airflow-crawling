@@ -1,5 +1,6 @@
 from __future__ import annotations
 import pendulum
+from datetime import timedelta # <<< [1] 이 부분을 추가합니다.
 from airflow.models.dag import DAG
 from airflow.operators.python import PythonOperator
 
@@ -38,6 +39,8 @@ with DAG(
     save_db_task = PythonOperator(
         task_id="save_db_task",
         python_callable=save_data_to_db,
+        retries=3,  # 최대 3번까지 재시도
+        retry_delay=timedelta(minutes=10), # 재시도 간격은 10분
     )
 
     # Task 실행 순서 정의: 스크래핑 >> 전처리 >> DB 저장

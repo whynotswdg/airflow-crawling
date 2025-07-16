@@ -50,10 +50,10 @@ def save_data_to_db(ti):
         # execute_values를 사용한 효율적인 대량 INSERT
         execute_values(cur, insert_sql, values)
         conn.commit()
-        print(f"✅ 성공: 총 {len(data_to_save)}개의 데이터가 DB에 저장(업데이트)되었습니다.")
+        print(f"성공: 총 {len(data_to_save)}개의 데이터가 DB에 저장(업데이트)되었습니다.")
         
     except Exception as e:
-        print(f"❌ DB 저장 중 오류 발생: {e}")
+        print(f"DB 저장 중 오류 발생: {e}")
         conn.rollback()
         raise
     finally:
