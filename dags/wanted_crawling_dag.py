@@ -54,7 +54,7 @@ with DAG(
     # Task 5: 최종 표준화 작업
     standardize_data_task = PythonOperator(
         task_id="standardize_data_task",
-        python_callable=standardize_and_save_data,
+        python_callable=standardize_tech_stacks,
     )
 
     # Task 실행 순서 정의
