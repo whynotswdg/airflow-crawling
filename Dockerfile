@@ -1,5 +1,5 @@
 # 1. 베이스 이미지 지정
-FROM apache/airflow:3.0.2
+FROM apache/airflow:3.0.3
 
 # 2. 파이썬 라이브러리 목록 복사
 COPY requirements.txt /
