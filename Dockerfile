@@ -5,7 +5,6 @@ FROM apache/airflow:3.0.3
 USER root
 
 # 3. Playwright가 필요로 하는 모든 시스템 라이브러리를 미리 설치합니다.
-#    이 작업은 반드시 root 권한으로 실행해야 합니다.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libnss3 libnspr4 libdbus-glib-1-2 libatk1.0-0 libatk-bridge2.0-0 \
     libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
@@ -13,21 +12,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean
 
 # 4. 나중에 airflow 사용자가 사용할 캐시 폴더들을 미리 만들고, 소유권을 부여합니다.
-#    이것이 권한 문제를 근본적으로 해결하는 핵심입니다.
+#    'airflow' 사용자/그룹 이름 대신 UID/GID를 직접 사용하여 권한 문제를 근본적으로 해결합니다.
 RUN mkdir -p /home/airflow/.cache/pip /home/airflow/.cache/huggingface /home/airflow/.cache/ms-playwright && \
-    chown -R airflow:airflow /home/airflow/.cache
+    chown -R 50000:0 /home/airflow/.cache
 
 # 5. 이제 airflow 사용자로 전환하여, 사용자 레벨의 작업을 안전하게 수행합니다.
 USER airflow
 
 # 6. requirements.txt 복사 및 파이썬 라이브러리 설치
-COPY --chown=airflow:airflow requirements.txt .
+COPY --chown=airflow:0 requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 7. Playwright 브라우저 '실행 파일'만 설치 (시스템 의존성 설치 없이)
-#    시스템 라이브러리는 이미 root로 설치했고, 캐시 폴더 권한도 해결되었습니다.
 RUN playwright install chrome
 
 # 8. Hugging Face 모델 미리 다운로드하여 이미지에 포함
-#    airflow 사용자 권한으로 실행하여, 미리 만들어둔 캐시 폴더에 안전하게 저장합니다.
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('intfloat/multilingual-e5-large')"
