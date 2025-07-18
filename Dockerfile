@@ -25,8 +25,7 @@ USER airflow
 COPY --chown=50000:0 requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 7. Playwright 브라우저 '실행 파일'만 설치 (시스템 의존성 설치 없이)
-#    시스템 라이브러리는 이미 root로 설치했고, 캐시 폴더 권한도 해결되었습니다.
+# Playwright 브라우저 설치 (root 권한에서 실행)
 RUN playwright install chrome
 
 # 8. Hugging Face 모델 미리 다운로드하여 이미지에 포함
