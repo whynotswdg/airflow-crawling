@@ -1,21 +1,29 @@
 # 1. 베이스 이미지 지정
 FROM apache/airflow:3.0.3
 
-# 2. 루트 사용자로 전환하여 모든 설치 작업을 수행합니다.
+# 2. 루트 사용자로 전환하여 시스템 레벨의 작업만 먼저 수행
 USER root
 
-# 3. requirements.txt 파일을 복사합니다.
-COPY requirements.txt .
+# a. Playwright가 필요로 하는 시스템 의존성 라이브러리 설치
+# RUN playwright install-deps 보다 필요한 라이브러리를 직접 명시하는 것이 더 안정적입니다.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libnss3 libnspr4 libdbus-glib-1-2 libatk1.0-0 libatk-bridge2.0-0 \
+    libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
+    libxrandr2 libgbm1 libasound2 \
+    && apt-get clean
 
-# 4. 파이썬 라이브러리들을 설치합니다.
-RUN pip install --no-cache-dir -r requirements.txt
-
-# 5. Playwright 크롬 브라우저와 시스템 의존성을 한 번에 설치합니다. (가장 효율적인 방법)
-RUN playwright install chrome --with-deps
-
-# 6. Hugging Face 캐시 폴더를 생성하고, airflow 사용자에게 소유권을 부여합니다.
+# b. Hugging Face 캐시 폴더 생성 및 airflow 사용자에게 소유권 부여
 RUN mkdir -p /home/airflow/.cache/huggingface && \
     chown -R airflow:airflow /home/airflow/.cache
 
-# 7. 모든 설치가 끝난 후, 컨테이너의 최종 실행 사용자를 airflow로 설정합니다.
+# 3. 다시 airflow 사용자로 전환하여 파이썬 패키지 관련 작업 수행 (가장 중요)
 USER airflow
+
+# a. requirements.txt 파일 복사
+COPY requirements.txt .
+
+# b. airflow 사용자 권한으로 파이썬 라이브러리 설치 (Airflow 보안 정책 준수)
+RUN pip install --no-cache-dir -r requirements.txt
+
+# c. airflow 사용자 권한으로 Playwright 브라우저 다운로드
+RUN playwright install chrome
