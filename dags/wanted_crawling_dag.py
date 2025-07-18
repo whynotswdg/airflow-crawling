@@ -11,6 +11,7 @@ from task_preprocess_data import preprocess_data
 from task_standardize_tech import standardize_and_save_data 
 from task_tokenize_jobs import tokenize_and_post_process_jobs
 from task_embedding_jobs import embed_jobs_data
+from task_clustering_jobs import cluster_jobs_data
 
 with DAG(
     dag_id="wanted_crawling_dag",
@@ -18,15 +19,19 @@ with DAG(
     start_date=pendulum.datetime(2025, 7, 3, tz="Asia/Seoul"),
     catchup=False,
     doc_md="""
-    ### 원티드 채용공고 데이터 파이프라인 (최종)
-    1. `extract_urls_task`: URL 추출
-    2. `crawl_content_task`: 상세 내용 크롤링
-    3. `save_to_db_task`: 원본 데이터를 MongoDB에 저장 (병렬 실행)
-    4. `preprocess_data_task`: LLM으로 1차 기술 스택 추출 (병렬 실행)
-    5. `standardize_data_task`: 규칙 기반으로 2차 최종 표준화
-    6. `tokenize_jobs_task`: LLM으로 본문 키워드 토큰화 및 후처리
+    ### 원티드 채용공고 데이터 파이프라인 (분석 전체)
+    1.  **URL 추출**: `extract_urls_task`
+    2.  **상세 내용 크롤링**: `crawl_content_task`
+    3.  **병렬 처리**:
+        - **MongoDB 저장**: `save_to_db_task`
+        - **1차 전처리 (LLM 기술스택)**: `preprocess_data_task`
+    4.  **2차 표준화**: `standardize_data_task` (1차 전처리 완료 후)
+    5.  **병렬 처리**:
+        - **토큰화 (LLM 키워드)**: `tokenize_jobs_task` (크롤링 완료 후)
+        - **임베딩**: `embedding_jobs_task` (2차 표준화 완료 후)
+    6.  **클러스터링**: `clustering_jobs_task` (임베딩 완료 후)
     """,
-    tags=["crawling", "wanted", "mongodb", "preprocessing", "standardization"],
+    tags=["crawling", "wanted", "mongodb", "preprocessing", "standardization", "embedding", "clustering"],
 ) as dag:
 
     # Task 1: URL 추출
@@ -71,14 +76,17 @@ with DAG(
         python_callable=embed_jobs_data,
     )
 
-    # 최종 Task 실행 순서를 정의
+    clustering_jobs_task = PythonOperator(
+        task_id="clustering_jobs_task",
+        python_callable=cluster_jobs_data)
+    
+
+    # --- 최종 Task 실행 순서 정의 ---
+    # 1. 크롤링 파트
     extract_urls_task >> crawl_content_task
 
-    # 크롤링이 끝나면 DB 저장, 1차 전처리, 토큰화를 병렬로 실행
+    # 2. 크롤링이 완료되면 원본 mongoDB 저장, 기술스택 추출(preprocess), 본문 토큰화를 병렬로 진행
     crawl_content_task >> [save_to_db_task, preprocess_data_task, tokenize_jobs_task]
-
-    # 1차 전처리가 끝나면, 2차 표준화 작업 실행
-    preprocess_data_task >> standardize_data_task
     
-    # 표준화 작업이 끝나면, 임베딩 작업 실행
-    standardize_data_task >> embedding_jobs_task
+    # 3. 기술스택 추출(preprocess)이 끝나면 -> 표준화 -> 임베딩 -> 클러스터링 순으로 진행
+    preprocess_data_task >> standardize_data_task >> embedding_jobs_task >> clustering_jobs_task
