@@ -10,7 +10,7 @@ from task_save_to_db import save_data_to_mongodb
 from task_preprocess_data import preprocess_data 
 from task_standardize_tech import standardize_and_save_data 
 from task_tokenize_jobs import tokenize_and_post_process_jobs
-
+from task_embedding_jobs import embed_jobs_data
 
 with DAG(
     dag_id="wanted_crawling_dag",
@@ -65,17 +65,20 @@ with DAG(
         python_callable=tokenize_and_post_process_jobs,
     )
 
-    # << 최종 Task 실행 순서 정의 (병렬 처리 강화) >>
-    
-    # 1. URL 추출 후 상세 내용 크롤링
+        # Task 7 : 표준화 후처리 된 공고 임베딩
+    embedding_jobs_task = PythonOperator(
+        task_id="embedding_jobs_task",
+        python_callable=embed_jobs_data,
+    )
+
+    # 최종 Task 실행 순서를 정의
     extract_urls_task >> crawl_content_task
 
-    # 2. 상세 내용 크롤링이 끝나면, 아래 3개의 Task를 동시에 병렬로 실행
-    crawl_content_task >> [
-        save_to_db_task,
-        preprocess_data_task,
-        tokenize_jobs_task
-    ]
+    # 크롤링이 끝나면 DB 저장, 1차 전처리, 토큰화를 병렬로 실행
+    crawl_content_task >> [save_to_db_task, preprocess_data_task, tokenize_jobs_task]
 
-    # 3. 1차 전처리(LLM 기술스택 추출)가 끝나면, 2차 표준화 작업 실행
+    # 1차 전처리가 끝나면, 2차 표준화 작업 실행
     preprocess_data_task >> standardize_data_task
+    
+    # 표준화 작업이 끝나면, 임베딩 작업 실행
+    standardize_data_task >> embedding_jobs_task
