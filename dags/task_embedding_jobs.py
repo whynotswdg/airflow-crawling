@@ -61,6 +61,7 @@ def embed_jobs_data(ti):
         texts_to_embed,
         batch_size=BATCH_SIZE,
         convert_to_numpy=True,
+        normalize_embeddings=True,  # 정규화 옵션 추가        
         show_progress_bar=True  # 이 옵션이 tqdm 루프를 대체합니다.
     )
 

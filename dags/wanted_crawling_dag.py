@@ -12,6 +12,7 @@ from task_standardize_tech import standardize_and_save_data
 from task_tokenize_jobs import tokenize_and_post_process_jobs
 from task_embedding_jobs import embed_jobs_data
 from task_clustering_jobs import cluster_jobs_data
+from task_save_wanted_to_postgres import process_and_send_to_postgres
 
 with DAG(
     dag_id="wanted_crawling_dag",
@@ -25,11 +26,12 @@ with DAG(
     3.  **병렬 처리**:
         - **MongoDB 저장**: `save_to_db_task`
         - **1차 전처리 (LLM 기술스택)**: `preprocess_data_task`
-    4.  **2차 표준화**: `standardize_data_task` (1차 전처리 완료 후)
+    4.  **2차 표준화**: `standardize_data_task`
     5.  **병렬 처리**:
-        - **토큰화 (LLM 키워드)**: `tokenize_jobs_task` (크롤링 완료 후)
-        - **임베딩**: `embedding_jobs_task` (2차 표준화 완료 후)
-    6.  **클러스터링**: `clustering_jobs_task` (임베딩 완료 후)
+        - **토큰화 (LLM 키워드)**: `tokenize_jobs_task`
+        - **임베딩**: `embedding_jobs_task`
+    6.  **클러스터링**: `clustering_jobs_task`
+    7.  **최종 PostgreSQL 저장**: `save_to_postgres_task`
     """,
     tags=["crawling", "wanted", "mongodb", "preprocessing", "standardization", "embedding", "clustering"],
 ) as dag:
@@ -80,13 +82,19 @@ with DAG(
         task_id="clustering_jobs_task",
         python_callable=cluster_jobs_data)
     
+    save_to_postgres_task = PythonOperator(
+        task_id="save_to_postgres_task",
+        python_callable=process_and_send_to_postgres)
 
     # --- 최종 Task 실행 순서 정의 ---
     # 1. 크롤링 파트
     extract_urls_task >> crawl_content_task
 
-    # 2. 크롤링이 완료되면 원본 mongoDB 저장, 기술스택 추출(preprocess), 본문 토큰화를 병렬로 진행
+    # 2. 크롤링이 완료되면 DB 저장, 기술스택 추출, 본문 토큰화를 병렬로 진행
     crawl_content_task >> [save_to_db_task, preprocess_data_task, tokenize_jobs_task]
     
-    # 3. 기술스택 추출(preprocess)이 끝나면 -> 표준화 -> 임베딩 -> 클러스터링 순으로 진행
+    # 3. 기술스택 추출 -> 표준화 -> 임베딩 -> 클러스터링 순으로 진행
     preprocess_data_task >> standardize_data_task >> embedding_jobs_task >> clustering_jobs_task
+    
+    # 4. 클러스터링과 토큰화가 모두 끝나면, 최종적으로 PostgreSQL에 저장
+    [clustering_jobs_task, tokenize_jobs_task] >> save_to_postgres_task

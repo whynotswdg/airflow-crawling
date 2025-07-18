@@ -7,7 +7,7 @@ from airflow.operators.python import PythonOperator
 # dags 폴더에 있는 task 파일들에서 함수를 가져옵니다.
 from task_scrape_boottent import scrape_boottent_data
 from task_preprocess_boottent import preprocess_and_save_data
-from task_save_to_postgres import save_data_to_db # ✅ DB 저장 함수 임포트
+from task_save_boottent_to_postgres import save_data_to_db
 
 with DAG(
     dag_id="boottent_crawling_dag",
