@@ -17,6 +17,7 @@ RUN mkdir -p /home/airflow/.cache/pip /home/airflow/.cache/huggingface /home/air
 
 # 5. 이제 airflow 사용자로 최종 전환합니다.
 USER airflow
+RUN playwright install
 
 # 6. 사용자 환경 변수를 명시적으로 설정하여 안정성을 높입니다.
 ENV HOME=/home/airflow
