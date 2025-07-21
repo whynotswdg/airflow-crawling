@@ -21,6 +21,7 @@ USER airflow
 # 6. 사용자 환경 변수를 명시적으로 설정하여 안정성을 높입니다.
 ENV HOME=/home/airflow
 ENV PATH=/home/airflow/.local/bin:$PATH
+ENV HF_HOME=/opt/airflow/hf_cache
 
 # 9. Hugging Face 모델 미리 다운로드하여 이미지에 포함
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('intfloat/multilingual-e5-large')"
