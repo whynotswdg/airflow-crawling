@@ -84,7 +84,11 @@ def process_and_send_to_postgres(ti):
         print("새롭게 추가할 데이터가 없습니다.")
         return
 
-    new_data_to_insert.replace({pd.NA: None}, inplace=True)
+    # new_data_to_insert.replace({pd.NA: None}, inplace=True)
+    if 'id' in new_data_to_insert.columns:
+        new_data_to_insert['id'] = new_data_to_insert['id'].astype(object)
+    if 'job_required_skill_id' in new_data_to_insert.columns:
+        new_data_to_insert['job_required_skill_id'] = new_data_to_insert['job_required_skill_id'].astype(object)
 
     try:
         rows_to_insert = list(new_data_to_insert.itertuples(index=False, name=None))
