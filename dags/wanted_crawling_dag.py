@@ -2,7 +2,6 @@ from __future__ import annotations
 import pendulum
 from airflow.models.dag import DAG
 from airflow.operators.python import PythonOperator
-from datetime import timedelta 
 # dags 폴더에 함께 있는 task 파일들에서 함수를 가져옵니다.
 from task_extract_urls import extract_urls
 from task_crawl_content import crawl_content
@@ -13,46 +12,8 @@ from task_tokenize_jobs import tokenize_and_post_process_jobs
 from task_embedding_jobs import embed_jobs_data
 from task_clustering_jobs import cluster_jobs_data
 from task_save_wanted_to_postgres import process_and_send_to_postgres
-
-# ===================================================================
-# 클라우드를 통한 서버 배포 전 특정 시간 재시도 로직 (추후 EC2 배포시 제거 예정)
-# ===================================================================
-
-def get_retry_delay_at_9_10(context):
-    """
-    [MongoDB 저장용] 실패 시, 다음 날 오전 9시 10분에 재시도합니다.
-    """
-    print("재시도를 위해 다음 날 오전 9시 10분까지 대기합니다.")
-    now = pendulum.now("Asia/Seoul")
-    target_time = now.replace(hour=9, minute=10, second=0, microsecond=0)
-
-    # 만약 현재 시간이 이미 오전 9시 10분을 지났다면, 다음 날 9시 10분으로 설정
-    if now >= target_time:
-        target_time = target_time.add(days=1)
-
-    delay = target_time - now
-    return delay
-
-def get_retry_delay_for_postgres(context):
-    """
-    [PostgreSQL 저장용] 1차 재시도는 5분 후, 2차 재시도는 다음 날 오전 9시 11분에 수행합니다.
-    """
-    try_number = context["try_number"]
-    
-    if try_number <= 2: # 1차 재시도
-        print("1차 재시도를 위해 5분 대기합니다.")
-        return timedelta(minutes=5)
-    else: # 2차 재시도
-        print("2차 재시도를 위해 다음 날 오전 9시 11분까지 대기합니다.")
-        now = pendulum.now("Asia/Seoul")
-        target_time = now.replace(hour=9, minute=11, second=0, microsecond=0)
-
-        if now >= target_time:
-            target_time = target_time.add(days=1)
-
-        delay = target_time - now
-        return delay
-# ===================================================================
+# 특정 시간에 재시도하는 로직
+from utils import get_retry_delay_at_9_10, get_retry_delay_for_postgres
 
 with DAG(
     dag_id="wanted_crawling_dag",

@@ -1,6 +1,5 @@
 from __future__ import annotations
 import pendulum
-from datetime import timedelta # <<< [1] 이 부분을 추가합니다.
 from airflow.models.dag import DAG
 from airflow.operators.python import PythonOperator
 
@@ -8,6 +7,8 @@ from airflow.operators.python import PythonOperator
 from task_scrape_boottent import scrape_boottent_data
 from task_preprocess_boottent import preprocess_and_save_data
 from task_save_boottent_to_postgres import save_data_to_db
+
+from utils import get_retry_delay_at_9_10
 
 with DAG(
     dag_id="boottent_crawling_dag",
@@ -39,9 +40,9 @@ with DAG(
     save_db_task = PythonOperator(
         task_id="save_db_task",
         python_callable=save_data_to_db,
-        retries=3,  # 최대 3번까지 재시도
-        retry_delay=timedelta(minutes=10), # 재시도 간격은 10분
+        retries=1,  # 재시도 횟수를 1번으로 변경
+        retry_delay=get_retry_delay_at_9_10, # 재시도 로직을 공통 함수로 연결
     )
-
+    
     # Task 실행 순서 정의: 스크래핑 >> 전처리 >> DB 저장
     scrape_boottent_task >> preprocess_boottent_task >> save_db_task
