@@ -71,9 +71,9 @@ def process_and_send_to_postgres(ti):
         if not existing_ids_df.empty:
             existing_ids_set = set(existing_ids_df['id'])
             mask = ~final_data['id'].isin(existing_ids_set)
-            new_data_to_insert = final_data[mask]
+            new_data_to_insert = final_data.loc[mask].copy()
         else:
-            new_data_to_insert = final_data
+            new_data_to_insert = final_data.copy()
             
         print(f"기존 데이터와 비교 후, {len(new_data_to_insert)}개의 새로운 데이터를 저장합니다.")
     except Exception as e:
@@ -84,10 +84,7 @@ def process_and_send_to_postgres(ti):
         print("새롭게 추가할 데이터가 없습니다.")
         return
 
-    if 'job_required_skill_id' in new_data_to_insert.columns:
-        new_data_to_insert['job_required_skill_id'] = new_data_to_insert['job_required_skill_id'].astype(object)
-    if 'id' in new_data_to_insert.columns:
-         new_data_to_insert['id'] = new_data_to_insert['id'].astype(object)
+    new_data_to_insert.replace({pd.NA: None}, inplace=True)
 
     try:
         rows_to_insert = list(new_data_to_insert.itertuples(index=False, name=None))
