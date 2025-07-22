@@ -1,7 +1,6 @@
 import json
 import pandas as pd
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-# [1] 파일 저장을 위해 utils에서 필요한 함수들을 추가로 import 합니다.
 from utils import load_json_data, save_json_data, generate_timestamped_filename
 
 def process_and_send_to_postgres(ti):
@@ -9,7 +8,7 @@ def process_and_send_to_postgres(ti):
     Airflow Task: 여러 이전 Task들의 결과(JSON 파일)를 XCom으로 받아
     최종 데이터를 가공한 후, JSON 파일로 저장하고 PostgreSQL DB에도 전송합니다.
     """
-    # --- 데이터 로드 및 전처리 (이전과 동일) ---
+    # --- 데이터 로드 (이전과 동일) ---
     clustered_path = ti.xcom_pull(task_ids='clustering_jobs_task', key='return_value')
     keyword_path = ti.xcom_pull(task_ids='tokenize_jobs_task', key='return_value')
 
@@ -32,32 +31,38 @@ def process_and_send_to_postgres(ti):
         print(f"🚨 DB에서 'job_required_skills' 테이블을 읽는 중 오류 발생: {e}")
         raise
 
+    # --- 데이터 전처리 ---
     print("데이터 병합 및 전처리를 시작합니다...")
     merged_data = clustered_data.merge(keyword_data, on='id', how='left')
+    
+    # [수정] 원본 코드의 'job_category' 대신 클러스터링 결과인 'representative_category'를 사용
     job_required_skills.rename(columns={"id": "job_required_skill_id", 'job_name': 'representative_category'}, inplace=True)
     join_data = merged_data.merge(job_required_skills[["representative_category", "job_required_skill_id"]], on='representative_category', how='left')
+    
+    # 불필요한 컬럼 제거
     join_data.drop(columns=["representative_category", "job_category", "cluster"], inplace=True, errors="ignore")
     
-    for col in ["required_skills", "preferred_skills", "main_tasks_skills"]:
-        join_data[col] = join_data[col].apply(lambda x: json.dumps(x if isinstance(x, list) else []))
+    # [수정] 'full_embedding'을 포함한 리스트 형태의 컬럼들을 JSON 문자열로 변환
+    for col in ["required_skills", "preferred_skills", "main_tasks_skills", "full_embedding"]:
+        if col in join_data.columns:
+            join_data[col] = join_data[col].apply(lambda x: json.dumps(x if isinstance(x, list) else []))
+
     join_data["address"] = join_data["address"].fillna("")
     
+    # [수정] 최종 컬럼 목록에 'full_embedding' 추가
     target_columns = [
         'id', 'title', 'company_name', 'size', 'address', 'job_required_skill_id',
         'employment_type', 'applicant_type', 'posting_date', 'deadline',
         'main_tasks', 'qualifications', 'preferences', 'tech_stack',
-        'required_skills', 'preferred_skills', 'main_tasks_skills'
+        'required_skills', 'preferred_skills', 'main_tasks_skills', 'full_embedding'
     ]
     final_data = join_data[[col for col in target_columns if col in join_data.columns]]
 
-    # --- [2] (선택사항) DB 전송 전, 최종 데이터를 로컬에 JSON 파일로 저장 ---
-    # DataFrame을 list of dict 형태로 변환
+    # --- (디버깅용) 로컬 파일 저장 ---
     final_data_list = final_data.to_dict(orient='records')
-    # 파일로 저장
     debug_filename = generate_timestamped_filename("final_postgres_payload")
     save_json_data(final_data_list, debug_filename)
     print(f"🔍 디버깅용 최종 데이터 저장 완료: /opt/airflow/data/{debug_filename}")
-
 
     # --- DB 저장 로직 (이전과 동일) ---
     try:
