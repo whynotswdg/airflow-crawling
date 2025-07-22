@@ -15,8 +15,30 @@ N_CLUSTERS = 200 # 클러스터 개수
 def split_job_category(category_str):
     if pd.isna(category_str) or not category_str.strip():
         return []
-    # (세부 로직은 길어서 생략, 원본 코드와 동일)
-    return [cat.strip() for cat in category_str.split(',') if cat.strip()]
+
+    tokens = []
+    buffer = ""
+    parts = re.split(r'(,)', category_str)
+
+    i = 0
+    while i < len(parts):
+        part = parts[i]
+        if part == ',':
+            if i + 1 < len(parts) and not parts[i + 1].startswith(' '):
+                buffer += ',' + parts[i + 1]
+                i += 2
+            else:
+                tokens.append(buffer.strip())
+                buffer = ""
+                i += 1
+        else:
+            buffer += part
+            i += 1
+
+    if buffer:
+        tokens.append(buffer.strip())
+
+    return tokens
 
 def get_priority_dict(jobs) -> dict:
     all_categories = []
