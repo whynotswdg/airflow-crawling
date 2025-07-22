@@ -37,9 +37,9 @@ def process_and_send_to_postgres(ti):
     # --- 데이터 전처리 로직 (변경 없음) ---
     print("데이터 병합 및 전처리를 시작합니다...")
     merged_data = clustered_data.merge(keyword_data, on='id', how='left')
-    job_required_skills.rename(columns={"id": "job_required_skill_id", 'job_name': 'job_category'}, inplace=True)
-    join_data = merged_data.merge(job_required_skills[["job_category", "job_required_skill_id"]], on='job_category', how='left')
-    join_data.drop(columns=["job_category", "cluster"], inplace=True, errors="ignore")
+    job_required_skills.rename(columns={"id": "job_required_skill_id", 'job_name': 'representative_category'}, inplace=True)
+    join_data = merged_data.merge(job_required_skills[["representative_category", "job_required_skill_id"]], on='representative_category', how='left')
+    join_data.drop(columns=["representative_category", "job_category", "cluster"], inplace=True, errors="ignore")
     
     for col in ["required_skills", "preferred_skills", "main_tasks_skills"]:
         join_data[col] = join_data[col].apply(lambda x: json.dumps(x if isinstance(x, list) else []))
