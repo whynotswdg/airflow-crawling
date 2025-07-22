@@ -13,7 +13,7 @@ from task_embedding_jobs import embed_jobs_data
 from task_clustering_jobs import cluster_jobs_data
 from task_save_wanted_to_postgres import process_and_send_to_postgres
 # 특정 시간에 재시도하는 로직
-from utils import get_retry_delay_at_9_10, get_retry_delay_for_postgres
+from datetime import timedelta  # timedelta를 직접 사용하기 위해 임포트
 
 with DAG(
     dag_id="wanted_crawling_dag",
@@ -54,7 +54,7 @@ with DAG(
         task_id="save_to_db_task",
         python_callable=save_data_to_mongodb,
         retries=1, # 1번 재시도
-        retry_delay=get_retry_delay_at_9_10, # 9시 10분 재시도 함수 연결
+        retry_delay=timedelta(hours=8, minutes=10),
     )
 
 
@@ -90,7 +90,7 @@ with DAG(
         task_id="save_to_postgres_task",
         python_callable=process_and_send_to_postgres,
         retries=2,
-        retry_delay=get_retry_delay_for_postgres, # 9시 11분 재시도 함수 연결
+        retry_delay=timedelta(hours=8, minutes=11),
     )
 
     # --- 최종 Task 실행 순서 정의 ---
