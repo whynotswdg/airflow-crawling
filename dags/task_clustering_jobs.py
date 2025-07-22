@@ -81,7 +81,7 @@ def cluster_jobs_data(ti):
         # numpy int64 타입을 파이썬 기본 int로 변환
         final_jobs[i]["cluster"] = int(final_jobs[i]["cluster"])
         # 임베딩 데이터는 최종 파일에서 제외 (용량 문제)
-        del final_jobs[i]["full_embedding"]
+        # del final_jobs[i]["full_embedding"]
         del final_jobs[i]["job_category_list"]
         
     # 5. 결과를 새로운 JSON 파일로 저장
