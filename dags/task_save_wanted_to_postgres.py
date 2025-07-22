@@ -28,7 +28,9 @@ def process_and_send_to_postgres(ti):
 
     # 3. DB에서 job_required_skills 테이블 데이터 가져오기
     try:
-        job_required_skills = pd.read_sql("SELECT id, job_name FROM job_required_skills", engine)
+        # [수정] engine.connect()를 사용하여 실제 Connection을 생성하고 전달합니다.
+        with engine.connect() as conn:
+            job_required_skills = pd.read_sql("SELECT id, job_name FROM job_required_skills", conn)
         print(f"✅ DB에서 {len(job_required_skills)}개의 직무 카테고리를 가져왔습니다.")
     except Exception as e:
         print(f"🚨 DB에서 'job_required_skills' 테이블을 읽는 중 오류 발생: {e}")
