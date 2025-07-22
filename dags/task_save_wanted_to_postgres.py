@@ -38,7 +38,8 @@ def process_and_send_to_postgres(ti):
     # [수정] 원본 코드의 'job_category' 대신 클러스터링 결과인 'representative_category'를 사용
     job_required_skills.rename(columns={"id": "job_required_skill_id", 'job_name': 'representative_category'}, inplace=True)
     join_data = merged_data.merge(job_required_skills[["representative_category", "job_required_skill_id"]], on='representative_category', how='left')
-    
+    join_data['job_required_skill_id'] = join_data['job_required_skill_id'].astype('Int64').where(pd.notnull(join_data['job_required_skill_id']), None)
+
     # 불필요한 컬럼 제거
     join_data.drop(columns=["representative_category", "job_category", "cluster"], inplace=True, errors="ignore")
     
