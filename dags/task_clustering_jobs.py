@@ -47,11 +47,14 @@ def get_priority_dict(jobs) -> dict:
     counts = Counter(all_categories)
     return {k: i for i, (k, _) in enumerate(counts.most_common())}
 
-def get_representative_category(category_list: List[str], priority_dict: dict):
-    filtered = [cat for cat in category_list if cat in priority_dict]
-    if not filtered:
+def get_representative_category(counter: Counter, priority_dict: dict):
+    if not counter:
         return None
-    return sorted(filtered, key=lambda x: priority_dict[x])[0]
+    max_count = max(counter.values())
+    candidates = [k for k, v in counter.items() if v == max_count]
+    if len(candidates) == 1:
+        return candidates[0]
+    return sorted(candidates, key=lambda x: priority_dict.get(x, float('inf')))[0]
 
 # --- Airflow 실행 함수 ---
 def cluster_jobs_data(ti):
@@ -90,7 +93,8 @@ def cluster_jobs_data(ti):
     for cluster_id in tqdm(range(N_CLUSTERS), desc="클러스터 대표 직무 지정 중"):
         group = df[df["cluster"] == cluster_id]
         merged_categories = [cat for sublist in group["job_category_list"] for cat in sublist]
-        rep = get_representative_category(merged_categories, priority_dict)
+        counter = Counter(merged_categories)
+        rep = get_representative_category(counter, priority_dict)
         rep_categories.append((cluster_id, rep))
 
     rep_dict = {cid: rep for cid, rep in rep_categories}
