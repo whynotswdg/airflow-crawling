@@ -10,7 +10,7 @@ def process_and_send_to_postgres(ti):
     """
     # --- 데이터 로드 (이전과 동일) ---
     clustered_path = ti.xcom_pull(task_ids='clustering_jobs_task', key='return_value')
-    keyword_path = ti.xcom_pull(task_ids='tokenize_jobs_task', key='return_value')
+    keyword_path = ti.xcom_pull(task_ids='post_process_tokens_task', key='return_value')
 
     if not clustered_path or not keyword_path:
         raise ValueError("XCom으로부터 클러스터링 또는 토큰화 데이터 파일 경로를 가져오지 못했습니다.")
