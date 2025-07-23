@@ -35,6 +35,8 @@ def process_and_send_to_postgres(ti):
     print("데이터 병합 및 전처리를 시작합니다...")
     merged_data = clustered_data.merge(keyword_data, on='id', how='left')
     
+    merged_data.drop_duplicates(subset=['id'], keep='first', inplace=True)
+
     # [수정] 원본 코드의 'job_category' 대신 클러스터링 결과인 'representative_category'를 사용
     job_required_skills.rename(columns={"id": "job_required_skill_id", 'job_name': 'representative_category'}, inplace=True)
     join_data = merged_data.merge(job_required_skills[["representative_category", "job_required_skill_id"]], on='representative_category', how='left')
