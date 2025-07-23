@@ -12,8 +12,10 @@ from task_tokenize_jobs import tokenize_and_post_process_jobs
 from task_embedding_jobs import embed_jobs_data
 from task_clustering_jobs import cluster_jobs_data
 from task_save_wanted_to_postgres import process_and_send_to_postgres
+from task_post_process_tokens import post_process_tokenized_data
 # 특정 시간에 재시도하는 로직
 from datetime import timedelta  # timedelta를 직접 사용하기 위해 임포트
+
 
 with DAG(
     dag_id="wanted_crawling_dag",
@@ -76,6 +78,11 @@ with DAG(
         python_callable=tokenize_and_post_process_jobs,
     )
 
+    post_process_tokens_task = PythonOperator(
+        task_id="post_process_tokens_task",
+        python_callable=post_process_tokenized_data,
+    )
+
         # Task 7 : 표준화 후처리 된 공고 임베딩
     embedding_jobs_task = PythonOperator(
         task_id="embedding_jobs_task",
@@ -100,8 +107,12 @@ with DAG(
     # 2. 크롤링이 완료되면 DB 저장, 기술스택 추출, 본문 토큰화를 병렬로 진행
     crawl_content_task >> [save_to_db_task, preprocess_data_task, tokenize_jobs_task]
     
-    # 3. 기술스택 추출 -> 표준화 -> 임베딩 -> 클러스터링 순으로 진행
+    # 3. 토큰화 작업이 끝나면, 후처리(표준화) 작업을 실행
+    tokenize_jobs_task >> post_process_tokens_task
+
+    # 4. 기술스택 추출 -> 표준화 -> 임베딩 -> 클러스터링 순으로 진행
     preprocess_data_task >> standardize_data_task >> embedding_jobs_task >> clustering_jobs_task
     
-    # 4. 클러스터링과 토큰화가 모두 끝나면, 최종적으로 PostgreSQL에 저장
-    [clustering_jobs_task, tokenize_jobs_task] >> save_to_postgres_task
+    
+    # 4. 클러스터링과 토큰 후처리가 모두 끝나면, 최종적으로 PostgreSQL에 저장
+    [clustering_jobs_task, post_process_tokens_task] >> save_to_postgres_task
