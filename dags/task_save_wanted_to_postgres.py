@@ -24,7 +24,7 @@ def process_and_send_to_postgres(ti):
     hook = PostgresHook(postgres_conn_id='postgres_jobs_db')
 
     try:
-        sql = "SELECT id, job_name FROM job_required_skills"
+        sql = "SELECT id, job_name FROM job_roles"
         job_required_skills = hook.get_pandas_df(sql=sql)
         print(f"✅ DB에서 {len(job_required_skills)}개의 직무 카테고리를 가져왔습니다.")
     except Exception as e:
